@@ -172,6 +172,8 @@ where
             .signing_key(self.0.unverified_header().kid.as_ref(), self.signing_alg()?)
     }
 }
+// Preserve the existing ToString-only API during the dependency security update.
+#[allow(clippy::to_string_trait_impl)]
 impl<AC, GC, JE, JS> ToString for IdToken<AC, GC, JE, JS>
 where
     AC: AdditionalClaims,
@@ -345,7 +347,7 @@ where
         Some(IdTokenClaims::audiences(self))
     }
 }
-impl<'a, AC, GC> AudiencesClaim for &'a IdTokenClaims<AC, GC>
+impl<AC, GC> AudiencesClaim for &IdTokenClaims<AC, GC>
 where
     AC: AdditionalClaims,
     GC: GenderClaim,
@@ -363,7 +365,7 @@ where
         Some(IdTokenClaims::issuer(self))
     }
 }
-impl<'a, AC, GC> IssuerClaim for &'a IdTokenClaims<AC, GC>
+impl<AC, GC> IssuerClaim for &IdTokenClaims<AC, GC>
 where
     AC: AdditionalClaims,
     GC: GenderClaim,

@@ -16,7 +16,9 @@ API documentation and examples are available on [docs.rs](https://docs.rs/openid
 
 ## Minimum Supported Rust Version (MSRV)
 
-The MSRV for *3.3* and newer releases of this crate is Rust **1.65**.
+The MSRV for builds containing this security dependency update is Rust **1.87**.
+
+The MSRV for the earlier *3.3* through *4.0.1* releases of this crate is Rust **1.65**.
 
 The MSRV for *3.0* to *3.2* releases of this crate is Rust **1.57**.
 
