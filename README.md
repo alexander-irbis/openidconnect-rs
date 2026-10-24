@@ -1,5 +1,11 @@
 # [OpenID Connect](https://openid.net/specs/openid-connect-core-1_0.html) Library for Rust
 
+## Security-maintenance fork
+
+This is a narrowly scoped fork of [ramosbugs/openidconnect-rs](https://github.com/ramosbugs/openidconnect-rs), maintained only to apply security fixes and the dependency compatibility changes required for those fixes. It is not intended as an alternative development line or a replacement for upstream.
+
+Changes are kept minimal and suitable for contribution upstream. Fork-specific documentation is committed separately so that upstream can omit it when incorporating the fixes. We intend to return to upstream releases once the required fixes are available.
+
 [![crates.io](https://img.shields.io/crates/v/openidconnect.svg)](https://crates.io/crates/openidconnect)
 [![docs.rs](https://docs.rs/openidconnect/badge.svg)](https://docs.rs/openidconnect)
 [![Build Status](https://github.com/ramosbugs/openidconnect-rs/actions/workflows/main.yml/badge.svg)](https://github.com/ramosbugs/openidconnect-rs/actions/workflows/main.yml)
