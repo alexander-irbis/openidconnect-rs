@@ -30,6 +30,15 @@ older than 6 months will no longer be considered SemVer breaking changes and wil
 new major version number for this crate. MSRV changes will coincide with minor version updates
 and will not happen in patch releases.
 
+## WebAssembly runtime compatibility
+
+On `wasm32-unknown-unknown`, this security dependency update uses `getrandom`'s
+`wasm_js` backend with Web Crypto. The JavaScript environment must provide global
+Web Crypto; the backend documents Node.js 19+ support. Check its
+[WebAssembly runtime requirements](https://docs.rs/getrandom/0.4.3/getrandom/#webassembly-support)
+before adopting the update on an older runtime. Native and WASI backend selection
+is unchanged.
+
 ## Standards
 
 * [OpenID Connect Core](https://openid.net/specs/openid-connect-core-1_0.html)
