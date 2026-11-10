@@ -17,6 +17,11 @@ API documentation and examples are available on [docs.rs](https://docs.rs/openid
 ## Minimum Supported Rust Version (MSRV)
 
 The MSRV for builds containing this security dependency update is Rust **1.87**.
+Use `Cargo-1.87.lock` for the curated Rust 1.87 build and coverage jobs.
+
+The maintenance branch uses RSA 0.10 for RS256/384/512 and PS256/384/512.
+The RSA verifier accepts modulus sizes from 1024 through 4096 bits. CI
+audits both the stable resolution and the curated Rust 1.87 lockfile.
 
 The MSRV for the earlier *3.3* through *4.0.1* releases of this crate is Rust **1.65**.
 

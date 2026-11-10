@@ -81,10 +81,12 @@ pub fn verify_rsa_signature(
     // according to https://datatracker.ietf.org/doc/html/rfc7518#section-6.3.1.1
     // `n` is always unsigned (hence has sign plus)
 
-    let n_bigint = rsa::BigUint::from_bytes_be(n.deref());
-    let e_bigint = rsa::BigUint::from_bytes_be(e.deref());
-    let public_key = rsa::RsaPublicKey::new(n_bigint, e_bigint)
-        .map_err(|e| SignatureVerificationError::InvalidKey(e.to_string()))?;
+    let n_bigint = rsa::BoxedUint::from_be_slice_vartime(n.deref());
+    let e_bigint = rsa::BoxedUint::from_be_slice_vartime(e.deref());
+    // Keep the existing verification ceiling when using RSA 0.10.
+    let public_key =
+        rsa::PublicKey::new_with_size_limits(n_bigint, e_bigint, rsa::PublicKey::MIN_SIZE..=4096)
+            .map_err(|e| SignatureVerificationError::InvalidKey(e.to_string()))?;
 
     public_key
         .verify(padding, msg, signature)
@@ -183,7 +185,7 @@ mod tests {
 
     use base64::prelude::BASE64_URL_SAFE_NO_PAD;
     use base64::Engine;
-    use sha2::Digest;
+    use rsa::sha2::Digest;
 
     #[test]
     fn test_leading_zeros_are_parsed_correctly() {
@@ -202,13 +204,13 @@ mod tests {
             }
         )).unwrap();
 
-        let mut hasher = sha2::Sha256::new();
+        let mut hasher = rsa::sha2::Sha256::new();
         hasher.update(msg);
         let hash = hasher.finalize().to_vec();
         assert! {
             verify_rsa_signature(
                 &key,
-                rsa::Pkcs1v15Sign::new::<sha2::Sha256>(),
+                rsa::Pkcs1v15Sign::new::<rsa::sha2::Sha256>(),
                 &hash,
                 &signature,
             ).is_ok()
