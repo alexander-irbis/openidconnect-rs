@@ -70,6 +70,14 @@ fn ed_public_key(
     }
 }
 
+fn significant_bytes(bytes: &[u8]) -> &[u8] {
+    let start = bytes
+        .iter()
+        .position(|byte| *byte != 0)
+        .unwrap_or(bytes.len());
+    &bytes[start..]
+}
+
 pub fn verify_rsa_signature(
     key: &CoreJsonWebKey,
     padding: impl rsa::traits::SignatureScheme,
@@ -77,16 +85,33 @@ pub fn verify_rsa_signature(
     signature: &[u8],
 ) -> Result<(), SignatureVerificationError> {
     let (n, e) = rsa_public_key(key).map_err(SignatureVerificationError::InvalidKey)?;
-    // let's n and e as a big integers to prevent issues with leading zeros
-    // according to https://datatracker.ietf.org/doc/html/rfc7518#section-6.3.1.1
-    // `n` is always unsigned (hence has sign plus)
+    const MAX_MODULUS_BITS: usize = 4096;
+    // Accept leading zero octets for compatibility, but bound the significant bytes
+    // before allocating the integers. RSA still checks the exact numeric limits.
+    let n = significant_bytes(n.deref());
+    let e = significant_bytes(e.deref());
+    if n.is_empty() || e.is_empty() {
+        return Err(SignatureVerificationError::InvalidKey(
+            "RSA modulus and public exponent must be nonzero".to_string(),
+        ));
+    }
+    if n.len() > MAX_MODULUS_BITS / 8 {
+        return Err(SignatureVerificationError::InvalidKey(
+            "RSA modulus exceeds the verification size limit".to_string(),
+        ));
+    }
+    if e.len() > std::mem::size_of::<u64>() {
+        return Err(SignatureVerificationError::InvalidKey(
+            "RSA public exponent exceeds the verification size limit".to_string(),
+        ));
+    }
 
-    let n_bigint = rsa::BoxedUint::from_be_slice_vartime(n.deref());
-    let e_bigint = rsa::BoxedUint::from_be_slice_vartime(e.deref());
-    // Keep the existing verification ceiling when using RSA 0.10.
-    let public_key =
-        rsa::PublicKey::new_with_size_limits(n_bigint, e_bigint, rsa::PublicKey::MIN_SIZE..=4096)
-            .map_err(|e| SignatureVerificationError::InvalidKey(e.to_string()))?;
+    let public_key = rsa::PublicKey::new_with_size_limits(
+        rsa::BoxedUint::from_be_slice_vartime(n),
+        rsa::BoxedUint::from_be_slice_vartime(e),
+        rsa::PublicKey::MIN_SIZE..=MAX_MODULUS_BITS,
+    )
+    .map_err(|e| SignatureVerificationError::InvalidKey(e.to_string()))?;
 
     public_key
         .verify(padding, msg, signature)
@@ -186,6 +211,38 @@ mod tests {
     use base64::prelude::BASE64_URL_SAFE_NO_PAD;
     use base64::Engine;
     use rsa::sha2::Digest;
+
+    #[test]
+    fn rejects_invalid_rsa_component_sizes() {
+        for (modulus, exponent, expected) in [
+            (
+                vec![1; 513],
+                vec![3],
+                "RSA modulus exceeds the verification size limit",
+            ),
+            (
+                vec![1; 128],
+                vec![1; 9],
+                "RSA public exponent exceeds the verification size limit",
+            ),
+            (
+                vec![1; 128],
+                vec![0],
+                "RSA modulus and public exponent must be nonzero",
+            ),
+        ] {
+            let key: CoreJsonWebKey = serde_json::from_value(serde_json::json!({
+                "kty": "RSA",
+                "n": BASE64_URL_SAFE_NO_PAD.encode(modulus),
+                "e": BASE64_URL_SAFE_NO_PAD.encode(exponent),
+            }))
+            .unwrap();
+            assert!(matches!(
+                verify_rsa_signature(&key, rsa::Pkcs1v15Sign::new::<rsa::sha2::Sha256>(), &[], &[]),
+                Err(crate::SignatureVerificationError::InvalidKey(message)) if message == expected
+            ));
+        }
+    }
 
     #[test]
     fn test_leading_zeros_are_parsed_correctly() {
